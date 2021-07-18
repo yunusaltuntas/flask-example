@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask
 from flask_restful import Resource, Api, reqparse
 from flask_jwt import JWT, jwt_required
 
@@ -14,6 +14,12 @@ items = []
 
 
 class Item(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('price',
+                        type=float,
+                        required=True,
+                        help='This field cannot be left blank!'
+                        )
     @jwt_required()
     def get(self, name):
         item = next(filter(lambda x: x["name"] == name, items), None)
@@ -22,7 +28,7 @@ class Item(Resource):
     def post(self, name):
         if next(filter(lambda x: x["name"] == name, items), None) is not None:
             return {"message": "An item with name '{}' already exist ".format(name)}, 400
-        data = request.get_json(force=True)
+        data = Item.parser.parse_args()
         print(data)
         item = {'name': name, "price": data["price"]}
         items.append(item)
@@ -34,13 +40,7 @@ class Item(Resource):
         return {"message": "Item deleted"}
 
     def put(self, name):
-        parser = reqparse.RequestParser()
-        parser.add_argument('price',
-                            type=float,
-                            required=True,
-                            help='This field cannot be left blank!'
-                            )
-        data = parser.parse_args()
+        data = Item.parser.parse_args()
         item = next(filter(lambda x: x["name"] == name, items), None)
         print(item)
         if item is None:

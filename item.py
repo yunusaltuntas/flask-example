@@ -29,22 +29,26 @@ class Item(Resource):
 
         if row:
             return {'item': {'name': row[0], 'price': row[1]}}
+    @classmethod
+    def insert(cls,item):
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
 
+        query = "INSERT INTO items VALUES (?, ?)"
+        cursor.execute(query, (item['name'], item['price'],))
+
+        connection.commit()
+        connection.close()
     def post(self, name):
         if self.find_by_name(name):
             return {"message": "An item with name '{}' already exist ".format(name)}, 400
         data = Item.parser.parse_args()
         print(data)
         item = {'name': name, "price": data["price"]}
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
-
-        query = "INSERT INTO items VALUES (?, ?)"
-        cursor.execute(query, (item['name'],item['price'],))
-
-        connection.commit()
-        connection.close()
-
+        try:
+            self.insert(item)
+        except:
+            return {"message":"an error accured inserting the item"},500
         return item, 201
 
     def delete(self, name):

@@ -12,31 +12,50 @@ class Item(Resource):
                         )
     @jwt_required()
     def get(self, name):
+        item = self.find_by_name(name)
+        if item:
+            return item
+        return {"message": "Item not found"},404
+
+    @classmethod
+    def find_by_name(cls, name):
         connection = sqlite3.connect("data.db")
-        curser = connection.cursor()
+        cursor = connection.cursor()
 
         query = "SELECT * FROM items where name=?"
-        result = curser.execute(query,(name,))
+        result = cursor.execute(query, (name,))
         row = result.fetchone()
         connection.close()
 
         if row:
-            return {'item': {'name':row[0], 'price':row[1]}},200
-        return {"message": "Item not found"},404
-
+            return {'item': {'name': row[0], 'price': row[1]}}
 
     def post(self, name):
-        if next(filter(lambda x: x["name"] == name, items), None) is not None:
+        if self.find_by_name(name):
             return {"message": "An item with name '{}' already exist ".format(name)}, 400
         data = Item.parser.parse_args()
         print(data)
         item = {'name': name, "price": data["price"]}
-        items.append(item)
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+
+        query = "INSERT INTO items VALUES (?, ?)"
+        cursor.execute(query, (item['name'],item['price'],))
+
+        connection.commit()
+        connection.close()
+
         return item, 201
 
     def delete(self, name):
-        global items
-        items = list(filter(lambda x: x["name"] != name, items))
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+
+        query = "DELETE FROM items WHERE NAME=?"
+        cursor.execute(query, (name,))
+
+        connection.commit()
+        connection.close()
         return {"message": "Item deleted"}
 
     def put(self, name):

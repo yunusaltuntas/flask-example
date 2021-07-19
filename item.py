@@ -10,6 +10,7 @@ class Item(Resource):
                         required=True,
                         help='This field cannot be left blank!'
                         )
+
     @classmethod
     def find_by_name(cls, name):
         connection = sqlite3.connect("data.db")
@@ -22,8 +23,9 @@ class Item(Resource):
 
         if row:
             return {'item': {'name': row[0], 'price': row[1]}}
+
     @classmethod
-    def insert(cls,item):
+    def insert(cls, item):
         connection = sqlite3.connect("data.db")
         cursor = connection.cursor()
 
@@ -32,22 +34,25 @@ class Item(Resource):
 
         connection.commit()
         connection.close()
+
     @classmethod
-    def update(cls,item):
+    def update(cls, item):
         connection = sqlite3.connect("data.db")
         cursor = connection.cursor()
 
         query = "UPDATE  items SET price=? WHERE name=?"
-        cursor.execute(query, ( item['price'],item['name'],))
+        cursor.execute(query, (item['price'], item['name'],))
 
         connection.commit()
         connection.close()
+
     @jwt_required()
     def get(self, name):
         item = self.find_by_name(name)
         if item:
             return item
-        return {"message": "Item not found"},404
+        return {"message": "Item not found"}, 404
+
     def post(self, name):
         if self.find_by_name(name):
             return {"message": "An item with name '{}' already exist ".format(name)}, 400
@@ -57,7 +62,7 @@ class Item(Resource):
         try:
             self.insert(item)
         except:
-            return {"message":"an error accured inserting the item"},500
+            return {"message": "an error accured inserting the item"}, 500
         return item, 201
 
     def delete(self, name):
@@ -80,7 +85,7 @@ class Item(Resource):
             try:
                 self.insert(updated_item)
             except:
-                return {"message":"an error accured inserting the item"},500
+                return {"message": "an error accured inserting the item"}, 500
         else:
             try:
                 self.update(updated_item)
@@ -91,4 +96,13 @@ class Item(Resource):
 
 class ItemList(Resource):
     def get(self):
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+
+        query = "SELECT * FROM items"
+        result = cursor.execute(query)
+        items = []
+        for row in result:
+            items.append({"name": row[0], "price": row[1]})
+        connection.close()
         return {"items": items}
